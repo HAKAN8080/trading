@@ -22,6 +22,7 @@ def cover_grubu_belirle(cover):
         return "30+"
 
 def calculate_cover(stok_tl, haftalik_smm):
+    """MAĞAZA stok / haftalık SMM"""
     try:
         if haftalik_smm == 0 or pd.isna(haftalik_smm) or pd.isna(stok_tl):
             return 999
@@ -41,6 +42,8 @@ def veri_yukleme_ui():
     - GH Mğz Stok TL, Anlık Mğz Stok TL
     - LW Adet, LW SMM, TW Adet, TW SMM, TW İO
     - Son İlk satış Fiyatı, Son Kasa Fiyatı
+    
+    **Cover Hesaplama:** Mağaza Stok TL / Haftalık SMM (sadece mağaza!)
     """)
     
     uploaded_file = st.file_uploader("Excel Dosyası Yükle", type=['xlsx', 'xls'])
@@ -77,8 +80,8 @@ def veri_yukleme_ui():
             with col3:
                 st.metric("Marka", df['Marka'].nunique() if 'Marka' in df.columns else 0)
             with col4:
-                toplam = df['Anlık Toplam Stok TL'].sum() if 'Anlık Toplam Stok TL' in df.columns else 0
-                st.metric("Stok", f"{toplam/1e6:.1f}M TL")
+                mgz_stok = df['Anlık Mağaza Stok TL'].sum() if 'Anlık Mağaza Stok TL' in df.columns else 0
+                st.metric("Mağaza Stok", f"{mgz_stok/1e6:.1f}M TL")
             
             if st.button("🚀 Veriyi İşle ve Sisteme Yükle", type="primary", use_container_width=True):
                 with st.spinner("İşleniyor..."):
@@ -95,10 +98,20 @@ def veri_yukleme_ui():
                     
                     st.success("✅ Veri yüklendi!")
                     st.balloons()
-                    st.info("Sol menüden **CEO Dashboard** veya **Elastikiyet Yönetimi** sayfalarını kullanabilirsin!")
+                    
+                    # Cover özet
+                    avg_cover = df_processed['TW SS'].mean()
+                    st.info(f"""
+                    💡 **Cover Bilgisi:**
+                    - Ortalama Cover: {avg_cover:.1f} hafta
+                    - Hesaplama: Mağaza Stok TL / Haftalık SMM
+                    - Hedef: 8-12 hafta
+                    """)
         
         except Exception as e:
             st.error(f"❌ Hata: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
     else:
         st.info("👆 Excel dosyasını yükleyin")
 
@@ -116,15 +129,34 @@ def veri_isle(df):
         df['TW Marj'] = ((df['ASF_KDV_Haric'] - df['SMM Birim']) / df['ASF_KDV_Haric']) * 100
         df['TW Marj'] = df['TW Marj'].fillna(0)
     
-    # Cover hesapla
+    # ✅ COVER HESAPLAMA - SADECE MAĞAZA STOKU!
     if 'LW SS' not in df.columns:
-        df['LW SS'] = df.apply(lambda r: calculate_cover(r.get('GH Mağaza Stok TL', 0), r.get('LW SMM', 1)), axis=1)
+        df['LW SS'] = df.apply(
+            lambda r: calculate_cover(
+                r.get('GH Mağaza Stok TL', 0),  # Sadece mağaza!
+                r.get('LW SMM', 1)
+            ), 
+            axis=1
+        )
     
     if 'TW SS' not in df.columns:
-        df['TW SS'] = df.apply(lambda r: calculate_cover(r.get('Anlık Mağaza Stok TL', 0), r.get('TW SMM', 1)), axis=1)
+        df['TW SS'] = df.apply(
+            lambda r: calculate_cover(
+                r.get('Anlık Mağaza Stok TL', 0),  # Sadece mağaza!
+                r.get('TW SMM', 1)
+            ), 
+            axis=1
+        )
     
+    # Toplam SS (depo + mağaza) - referans için
     if 'Toplam SS' not in df.columns:
-        df['Toplam SS'] = df.apply(lambda r: calculate_cover(r.get('Anlık Toplam Stok TL', 0), r.get('TW SMM', 1)), axis=1)
+        df['Toplam SS'] = df.apply(
+            lambda r: calculate_cover(
+                r.get('Anlık Toplam Stok TL', 0), 
+                r.get('TW SMM', 1)
+            ), 
+            axis=1
+        )
     
     # Gruplar
     df['LW Cover Grup'] = df['LW SS'].apply(cover_grubu_belirle)
