@@ -24,18 +24,28 @@ def executive_dashboard_ui():
     
     with col3:
         avg_cover = df['TW SS'].mean() if 'TW SS' in df.columns else 0
-        st.metric("Ort. Cover", f"{avg_cover:.1f} hafta")
+        cover_emoji = "✅" if 8 <= avg_cover <= 12 else "⚠️" if avg_cover < 20 else "🔴"
+        st.metric("Ort. Cover", f"{avg_cover:.1f} hafta", delta=cover_emoji)
     
     with col4:
         avg_margin = df['TW Marj'].mean() if 'TW Marj' in df.columns else 0
         st.metric("Ort. Marj", f"{avg_margin:.1f}%")
     
     st.markdown("---")
+    
+    # Kategori breakdown
+    st.markdown("### 📦 Kategori Dağılımı")
+    
+    if 'Kategori' in df.columns:
+        kategori_stats = df.groupby('Kategori').agg({
+            'Ürün Kodu': 'count',
+            'Anlık Toplam Stok TL': 'sum',
+            'TW SS': 'mean',
+            'TW Marj': 'mean'
+        }).round(1)
+        
+        kategori_stats.columns = ['SKU Sayısı', 'Stok (TL)', 'Ort Cover', 'Ort Marj (%)']
+        st.dataframe(kategori_stats, use_container_width=True)
+    
+    st.markdown("---")
     st.info("🚧 Detaylı dashboard özellikleri geliştiriliyor...")
-    st.markdown("""
-    **Yakında:**
-    - Kritik alarm listesi
-    - Cover transition matrix
-    - Bütçe vs actual
-    - İndirim önerileri
-    """)
