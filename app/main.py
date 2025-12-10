@@ -1,10 +1,4 @@
 import streamlit as st
-from pathlib import Path
-import sys
-
-# Path setup - Streamlit Cloud için düzeltildi
-PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
 
 def main():
     st.set_page_config(
@@ -43,25 +37,23 @@ def main():
         try:
             from modules.veri_yukleme.veri_yukleme import veri_yukleme_ui
             veri_yukleme_ui()
-        except ImportError as e:
-            st.error(f"❌ Veri Yükleme modülü bulunamadı: {e}")
-            st.info("Modül dosyaları eksik olabilir. GitHub'daki dosyaları kontrol edin.")
+        except Exception as e:
+            st.error(f"❌ Veri Yükleme modülü hatası: {e}")
+            st.code(str(e))
     elif menu == "📊 CEO Dashboard":
         try:
             from modules.dashboard.executive_dashboard import executive_dashboard_ui
             executive_dashboard_ui()
-        except ImportError as e:
-            st.error(f"❌ Dashboard modülü bulunamadı: {e}")
-            st.info("Modül dosyaları eksik olabilir. GitHub'daki dosyaları kontrol edin.")
+        except Exception as e:
+            st.error(f"❌ Dashboard modülü hatası: {e}")
+            st.code(str(e))
     elif menu == "⚙️ Elastikiyet Yönetimi":
         try:
             from modules.elastikiyet.elastikiyet_yonetimi import elastikiyet_yonetimi_ui
             elastikiyet_yonetimi_ui()
-        except ImportError as e:
-            st.error(f"❌ Elastikiyet modülü bulunamadı: {e}")
-            st.info("Modül dosyaları eksik olabilir. GitHub'daki dosyaları kontrol edin.")
-    else:
-        st.info("🚧 Bu modül yakında eklenecek!")
+        except Exception as e:
+            st.error(f"❌ Elastikiyet modülü hatası: {e}")
+            st.code(str(e))
 
 def home_page():
     st.title("💄 EVE KOZMETİK")
